@@ -241,9 +241,9 @@ BRTransaction * BRGetTxForUTXO(BRWallet *wallet, BRUTXO utxo);
 
 uint8_t BRTXContainsAsset(BRTransaction *tx);
 
-uint8_t BRContainsAsset(const BRTxOutput *outputs, size_t outCount);
-
 uint8_t BROutIsAsset(const BRTxOutput output);
+
+uint8_t BROutputSpendable(BRWallet *wallet, const BRTxOutput output);
 
 #ifdef __cplusplus
 }

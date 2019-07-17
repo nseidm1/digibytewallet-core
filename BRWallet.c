@@ -219,7 +219,9 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
             if (tx->outputs[j].address[0] != '\0') {
                 BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
 
-                if (BRSetContains(wallet->allAddrs, tx->outputs[j].address) && !BRTXContainsAsset(tx)) {
+                if (tx->outputs[j].amount <= 700 || BROutIsAsset(tx->outputs[j])) continue;
+
+                if (BRSetContains(wallet->allAddrs, tx->outputs[j].address)) {
                     array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
                     balance += tx->outputs[j].amount;
                 }
@@ -597,7 +599,6 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         tx = BRSetGet(wallet->allTx, o);
 
         if (! tx || o->n >= tx->outCount) continue;
-        if (BROutIsAsset(tx->outputs[o->n])) continue;
         BRTransactionAddInput(transaction, tx->txHash, o->n, tx->outputs[o->n].amount,
                               tx->outputs[o->n].script, tx->outputs[o->n].scriptLen, NULL, 0, NULL, 0, TXIN_SEQUENCE);
         
@@ -1274,19 +1275,6 @@ uint8_t BRTXContainsAsset(BRTransaction *tx)
     return 0;
 }
 
-uint8_t BRContainsAsset(const BRTxOutput *outputs, size_t outCount) {
-    //Skip utxo that contain assets
-    for (int p = 0; p < outCount; p++) {
-        uint8_t one = outputs[p].script[0];
-        uint8_t three = outputs[p].script[2];
-        uint8_t four = outputs[p].script[3];
-        if (one == 106 && three == 68 && four == 65) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 uint8_t BROutIsAsset(const BRTxOutput output) {
     uint8_t one = output.script[0];
     uint8_t three = output.script[2];
@@ -1295,4 +1283,12 @@ uint8_t BROutIsAsset(const BRTxOutput output) {
         return 1;
     }
     return 0;
+}
+
+uint8_t BROutputSpendable(BRWallet *wallet, const BRTxOutput output)
+{
+    if (BROutIsAsset(output)) return 0;
+    if (BRSetContains(wallet->spentOutputs, &output)) return 0;
+    if (output.amount <= 700) return 0;
+    return 1;
 }
